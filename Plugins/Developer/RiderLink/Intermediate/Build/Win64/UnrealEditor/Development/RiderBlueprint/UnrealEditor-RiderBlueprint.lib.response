@@ -6,6 +6,6 @@
 /NAME:"UnrealEditor-RiderBlueprint.dll"
 /IGNORE:4221
 /NODEFAULTLIB
-"E:\UnrealProjects\UESpaceInvaders\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\Module.RiderBlueprint.cpp.obj"
-"E:\UnrealProjects\UESpaceInvaders\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\Default.rc2.res"
-/OUT:"E:\UnrealProjects\UESpaceInvaders\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\UnrealEditor-RiderBlueprint.lib"
+"E:\UnrealProjects\UESpaceInvadersClone\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\Module.RiderBlueprint.cpp.obj"
+"E:\UnrealProjects\UESpaceInvadersClone\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\Default.rc2.res"
+/OUT:"E:\UnrealProjects\UESpaceInvadersClone\Plugins\Developer\RiderLink\Intermediate\Build\Win64\UnrealEditor\Development\RiderBlueprint\UnrealEditor-RiderBlueprint.lib"

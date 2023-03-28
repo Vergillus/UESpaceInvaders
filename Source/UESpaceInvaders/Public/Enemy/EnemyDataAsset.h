@@ -1,0 +1,33 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/DataAsset.h"
+#include "EnemyDataAsset.generated.h"
+
+
+class UStaticMesh;
+
+/**
+ * 
+ */
+UCLASS()
+class UESPACEINVADERS_API UEnemyDataAsset : public UPrimaryDataAsset
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UStaticMesh> Mesh;
+
+	UPROPERTY(EditAnywhere)
+	int32 ReceivedScore;
+
+	UPROPERTY(EditAnywhere)
+	int32 MinSpawnRowIndex;
+
+	UPROPERTY(EditAnywhere)
+	int32 MaxSpawnRowIndex;
+};
