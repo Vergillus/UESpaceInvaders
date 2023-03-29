@@ -32,16 +32,21 @@ protected:
 
 	int32 Score;
 
-	void Attack();
+	float AttackPercent;
 
 	void OnDead();
 
 	UFUNCTION()
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 public:
 
 	FORCEINLINE void SetGridPosition(const int X, const int Y) { GridPosition.X = X; GridPosition.Y = Y; }
+	FORCEINLINE FIntVector2 GetGridPosition() const { return GridPosition;}
 
 	void InitializeEnemy(const int X, const int Y, const UEnemyDataAsset* EnemyData);
+
+	void Attack() const;
 };

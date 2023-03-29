@@ -17,7 +17,11 @@ AEnemyHorde::AEnemyHorde() :
 	MovementInput(1),
 	VerticalMovementDelay(0.5f),
 	WorldXPosToGameOver(-200),
-	bCanMove(true)
+	bCanMove(false),
+	EnemySpawnDelay(0.05f),
+	MinAttackRate(1.0f),
+	MaxAttackRate(2.0f),
+	KilledEnemyCnt(0)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -29,30 +33,25 @@ void AEnemyHorde::BeginPlay()
 {
 	Super::BeginPlay();
 
-	MovementInput = 1;
+	// Randomly assign MovementInput
+	MovementInput = FMath::RandRange(0,100) > 50 ? 1 : -1;
 
 	GridCellHalfSize = GridCellSize * 0.5f;
 	
-	SpawnEnemies();
+	if(EnemyData.IsEmpty()) return;
+	
+	Grid.SetNum(EnemyGridWidth * EnemyGridHeight);
 
-	GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, 1.0f, true);
+	EnemyDataAsset = GetEnemyData(0);
+
+	// Start enemy spawning process
+	GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, EnemySpawnDelay, true);	
 }
 
 // Called every frame
 void AEnemyHorde::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
-	if(PlayerController == nullptr)
-	{
-		PlayerController = UGameplayStatics::GetPlayerController(this,0);
-		if (PlayerController)
-		{
-			PlayerController->GetViewportSize(ViewportSizeX,ViewportSizeY);
-
-			//GEngine->AddOnScreenDebugMessage(-1,5.0f,FColor::Black, FString::Printf(TEXT("%i __ %i"), ViewportSizeX, ViewportSizeY));
-		}
-	}
+	Super::Tick(DeltaTime);	
 
 	if (bCanMove)
 	{
@@ -61,10 +60,11 @@ void AEnemyHorde::Tick(float DeltaTime)
 
 }
 
+// Moves the enemy left/right/down
 void AEnemyHorde::Move(float DeltaTime)
 {
 
-	// Delay/Stop movement after vertical happens for a given interval
+	// Delay/Stop movement after vertical movement happens for a given interval
 	if(VerticalMovementCounter > 0)
 	{
 		VerticalMovementCounter -= DeltaTime;
@@ -73,140 +73,212 @@ void AEnemyHorde::Move(float DeltaTime)
 
 	MovementCounter += DeltaTime;
 
+	// Can move??
 	if (MovementCounter >= MovementInterval)
 	{
 		FVector LocationOffset(0, GridCellSize, 0);
 		LocationOffset *= MovementInput;
 
+		// Boundary location of the enemy grid. Used to check whether enemy horde has reached the screen's edge
 		FVector BoundaryLocation = MovementInput > 0 ?  TopRightEnemy->GetActorLocation() : TopLeftEnemy->GetActorLocation();
 		BoundaryLocation += LocationOffset;
 		BoundaryLocation.Y += GridCellHalfSize * MovementInput;
 
 		DrawDebugSphere(GetWorld(),BoundaryLocation, 100, 12, FColor::Red, false, 1.0f);
 
+		// Get the screen position of BoundaryLocation
 		FVector2D ScreenPosition;		
 		PlayerController->ProjectWorldLocationToScreen(BoundaryLocation,ScreenPosition, true);		
-		
-		if(ScreenPosition.X > ViewportSizeX || ScreenPosition.X < -GridCellHalfSize)
+
+		// Is the enemy horde reached the screen edge
+		if(ScreenPosition.X > ViewportSizeX || ScreenPosition.X < -GridCellHalfSize * 0.5f)
 		{
+			// Change the movement direction
 			MovementInput *= -1;
 
-			AddActorWorldOffset(FVector{-GridCellSize * 0.5f,0,0});			
+			// Move Vertically
+			AddActorWorldOffset(FVector{-GridCellSize * 0.5f,0,0});
+
 			VerticalMovementCounter = VerticalMovementDelay;
 
 			CheckGameOver();
 
 			return;
 		}		
-		
+
+		// Enemy horde has not reached to screen's edge so continue moving to same direction
 		AddActorWorldOffset(LocationOffset);
 		MovementCounter = 0.0f;	
 	}
 }
 
-void AEnemyHorde::CheckGameOver()
-{
-	for(const auto& Enemy : SpawnedEnemies)
-	{
-		if (Enemy->GetActorLocation().X <= WorldXPosToGameOver)
-		{
-			UE_LOG(LogTemp,Warning,TEXT("GAME OVER"));
-			break;
-		}
-	}
-}
-
-
 void AEnemyHorde::EnemyDead(const int GridPosX, const int GridPosY)
 {
+	KilledEnemyCnt++;
+	const int EnemyIndex = GetIndexFrom2D(GridPosX, GridPosY); 
+
+	if (CheckWin())
+	{
+		//Notify GM that the player is WON
+
+		bCanMove = false;
+		SpawnedEnemies[EnemyIndex]->Destroy();
+		SpawnedEnemies[EnemyIndex] = nullptr;
+
+		return;
+	}
 	
+	Grid[EnemyIndex] = 0;
+
+	if(GridPosX == EnemyGridHeight - 1) // Either current top left or right enemy is dead find a new one
+	{
+		if(SpawnedEnemies[EnemyIndex] == TopLeftEnemy)
+		{
+			TopLeftEnemy = AssignNewTopEnemy(GridPosX, GridPosY, true);
+		}
+		else if(SpawnedEnemies[EnemyIndex] == TopRightEnemy)
+		{
+			TopRightEnemy = AssignNewTopEnemy(GridPosX, GridPosY, false);
+		}	
+	}	
+
+	SpawnedEnemies[EnemyIndex]->Destroy();
+	SpawnedEnemies[EnemyIndex] = nullptr;	
+	
+	//SpawnedEnemies.RemoveAt(EnemyIndex);
 }
 
-void AEnemyHorde::SpawnEnemies()
-{
-	if(EnemyData.IsEmpty()) return;
-	
-	const auto World = GetWorld();
 
-	if(!World) return;
-	
-	Grid.SetNum(EnemyGridWidth * EnemyGridHeight);
+#pragma region Spawn Related
+void AEnemyHorde::SpawnEnemiesWithDelay()
+{	
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParameters.Owner = this;
 
-	const FAttachmentTransformRules AttachmentTransformRules{EAttachmentRule::KeepWorld,true};
+	const FAttachmentTransformRules AttachmentTransformRules{EAttachmentRule::KeepWorld,true};	
 
-	UEnemyDataAsset* EnemyDataAsset = GetEnemyData(0);
-	
-
-	for (int X = 0; X < EnemyGridHeight; ++X)
+	// Get a new EnemyDataAsset
+	if(GridX > EnemyDataAsset->MaxSpawnRowIndex)
 	{
-		for (int Y = 0; Y < EnemyGridWidth; ++Y)
-		{
-
-			if(X > EnemyDataAsset->MaxSpawnRowIndex)
-			{
-				EnemyDataAsset = GetEnemyData(X);
-			}
+		EnemyDataAsset = GetEnemyData(GridX);
+	}
 			
-			FVector SpawnPos = GetActorLocation() + FVector(X * GridCellSize, Y * GridCellSize, 0);
+	const FVector SpawnPos = GetActorLocation() + FVector(GridX * GridCellSize, GridY * GridCellSize, 0);
 			
-			if(AEnemy* EnemyClone = World->SpawnActor<AEnemy>(EnemyToSpawn,SpawnPos,FRotator::ZeroRotator,SpawnParameters))
-			{
-				EnemyClone->InitializeEnemy(X,Y,EnemyDataAsset);
+	if(AEnemy* EnemyClone = GetWorld()->SpawnActor<AEnemy>(EnemyToSpawn,SpawnPos,FRotator::ZeroRotator,SpawnParameters))
+	{
+		EnemyClone->InitializeEnemy(GridX,GridY,EnemyDataAsset);
 				
-				EnemyClone->SetGridPosition(X,Y);
-				SpawnedEnemies.Add(EnemyClone);			
-				Grid[X * Y] = 1;
+		EnemyClone->SetGridPosition(GridX,GridY);
+		SpawnedEnemies.Add(EnemyClone);			
+		Grid[GetIndexFrom2D(GridX , GridY)] = 1;
 
-				EnemyClone->AttachToActor(this,AttachmentTransformRules);
-			}			
+		EnemyClone->AttachToActor(this,AttachmentTransformRules);
+	}
+	
+	GridY++;
+
+	// Is traversed the whole row??
+	if(GridY > EnemyGridWidth - 1)
+	{
+		// Next row
+		GridX++;
+
+		// Is traversed the whole grid??
+		if(GridX > EnemyGridHeight - 1)
+		{
+			EnemySpawnComplete();
+			return;
+		}
+		
+		GridY = 0;
+
+		// Stop SpawnEnemiesTimerHandle
+		GetWorldTimerManager().ClearTimer(SpawnEnemiesTimerHandle);		
+
+		// and start it again after a delay
+		FTimerHandle TimerHandle;
+		FTimerDelegate TimerDelegate;		
+		TimerDelegate.BindLambda([&]
+		{
+			GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, EnemySpawnDelay, true);		
+		});
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate,EnemySpawnDelay,false);
+	}	
+}
+
+void AEnemyHorde::EnemySpawnComplete()
+{
+	UE_LOG(LogTemp,Log,TEXT("Enemy Spawn Completed"));
+	
+	TopLeftEnemy = SpawnedEnemies[GetIndexFrom2D(EnemyGridHeight - 1,  0)];
+	TopRightEnemy = SpawnedEnemies.Last();
+	
+	bCanMove = true;
+	EnemyDataAsset = nullptr;
+	EnemyData.Empty();
+
+	if(PlayerController == nullptr)
+	{
+		PlayerController = UGameplayStatics::GetPlayerController(this,0);
+		if (PlayerController)
+		{
+			PlayerController->GetViewportSize(ViewportSizeX,ViewportSizeY);			
+		}
+	}
+			
+	GetWorldTimerManager().ClearTimer(SpawnEnemiesTimerHandle);
+	
+	// Start Attack timer
+	StartAttackTimer();
+}
+#pragma endregion 
+
+
+#pragma region Attack Related
+void AEnemyHorde::OrderAttack()
+{	
+	FIntVector2 EnemyGridPos{-1,-1};
+	int EnemyFrontIndex = -1;
+	for	(const AEnemy* Enemy : SpawnedEnemies)
+	{
+		if(!Enemy) continue;
+		
+		EnemyGridPos = Enemy->GetGridPosition(); 
+		if (EnemyGridPos.X == 0) // if the enemy's grid position X is 0 then attack
+		{
+			Enemy->Attack();
+		}
+		else // check if the enemy's front if open to attack
+		{
+			EnemyFrontIndex = GetIndexFrom2D(EnemyGridPos.X - 1 , EnemyGridPos.Y);			
+			if (Grid[EnemyFrontIndex] == 0) 
+			{
+				Enemy->Attack();
+			}
 		}
 	}
 
-	TopLeftEnemy = SpawnedEnemies[GetIndexFrom2D(0, EnemyGridHeight - 1)];
-	TopRightEnemy = SpawnedEnemies.Last();
+	// Restart Attack Timer
+	StartAttackTimer();
 }
 
-void AEnemyHorde::SpawnEnemiesWithDelay()
+void AEnemyHorde::StartAttackTimer()
 {
-
-	DenY++;
-
-	if(DenY >= EnemyGridWidth)
-	{
-		DenX++;
-		DenY = 0;
-
-		GetWorldTimerManager().ClearTimer(SpawnEnemiesTimerHandle);		
-		//GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::Deneme, 2, false);
-
-		FTimerHandle TimerHandle;
-		FTimerDelegate TimerDelegate;
-		constexpr float Delay = 1.0f;
-		TimerDelegate.BindLambda([&]
-		{
-			GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, 1.0f, true);		
-		});
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate,Delay,false);
-	}
-
-	FVector SpawnPos = GetActorLocation() + FVector(DenX * GridCellSize, DenY * GridCellSize, 0);
-
-	UE_LOG(LogTemp,Log, TEXT("%s"),*SpawnPos.ToString());
+	if(SpawnedEnemies.IsEmpty()) return;
+	
+	const float RndAttackRate = FMath::RandRange(MinAttackRate, MaxAttackRate);
+	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AEnemyHorde::OrderAttack, RndAttackRate);
 }
 
-void AEnemyHorde::Deneme()
-{
-	UE_LOG(LogTemp,Log, TEXT("UnPause"));	
-	GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, 1.0f, true);
-}
+#pragma endregion 
 
+#pragma region Helper Functions
 int32 AEnemyHorde::GetIndexFrom2D(const int X, const int Y) const
 {
-	return Y * EnemyGridWidth + X;
+	return X * EnemyGridWidth + Y;
 }
 
 UEnemyDataAsset* AEnemyHorde::GetEnemyData(const int Row) const
@@ -221,3 +293,48 @@ UEnemyDataAsset* AEnemyHorde::GetEnemyData(const int Row) const
 
 	return nullptr;
 }
+
+TObjectPtr<AEnemy> AEnemyHorde::AssignNewTopEnemy(const int32 GridPosX, const int32 GridPosY, const bool bIsTopLeft)
+{
+
+	TObjectPtr<AEnemy> Tmp = nullptr;
+	if(bIsTopLeft) // Look for new TopLeft enemy
+	{
+		for (int Y = GridPosY + 1; Y < EnemyGridWidth; ++Y)
+		{
+			if (SpawnedEnemies[GetIndexFrom2D(GridPosX, Y)])
+			{					
+				Tmp = SpawnedEnemies[GetIndexFrom2D(GridPosX, Y)];
+				break;
+			}
+		}
+	}
+	else // Look for new TopRight enemy
+	{
+		for (int Y = GridPosY - 1; Y > 0; --Y)
+		{
+			if (SpawnedEnemies[GetIndexFrom2D(GridPosX, Y)])
+			{					
+				Tmp = SpawnedEnemies[GetIndexFrom2D(GridPosX, Y)];
+				break;
+			}
+		}
+	}
+
+	return Tmp;
+}
+
+void AEnemyHorde::CheckGameOver()
+{
+	for(const auto& Enemy : SpawnedEnemies)
+	{
+		// If any of the remaining enemy inside enemy horde has reached game over location??
+		if (Enemy && Enemy->GetActorLocation().X <= WorldXPosToGameOver)
+		{
+			// Game Over
+			UE_LOG(LogTemp,Warning,TEXT("GAME OVER"));
+			break;
+		}
+	}
+}
+#pragma endregion 

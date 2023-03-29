@@ -30,4 +30,7 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	int32 MaxSpawnRowIndex;
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = "0", ClampMax = "1"))
+	float AttackChancePercent = 0.5f;
 };
