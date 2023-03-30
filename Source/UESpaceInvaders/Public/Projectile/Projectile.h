@@ -33,16 +33,20 @@ protected:
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
+	UPROPERTY(VisibleAnywhere)
 	bool bShouldDestroyOnHit;
 
 	UPROPERTY(VisibleAnywhere)
-	bool bIsActive;	
+	bool bIsActive;
+
+	UPROPERTY(EditDefaultsOnly);
+	float LifeTime;
 
 public:
 
 	void SetDestroyOnHit(bool NewVal);
 
-	void SetVelocity(const FVector& NewVelocity);
+	void SetVelocity(const FVector& NewVelocity) const;
 	void DisableProjectile(bool bIsDisabled);
 
 	FORCEINLINE bool GetIsActive() const { return bIsActive;}

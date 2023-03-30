@@ -11,6 +11,7 @@ class UInputMappingContext;
 class UInputAction;
 class AProjectile;
 class APlayerController;
+class AUESpaceInvadersGameModeBase;
 
 UCLASS()
 class UESPACEINVADERS_API APlayerPawn : public APawn
@@ -34,12 +35,13 @@ protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+private:
 	/** Input Actions */
 	//------------------------------------------------------------------------------------------------
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category =  "Input")
+	UPROPERTY(EditDefaultsOnly, Category =  "Input")
 	UInputAction* MoveAction;	
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category =  "Input")
+	UPROPERTY(EditDefaultsOnly, Category =  "Input")
 	UInputAction* FireAction;
 	//------------------------------------------------------------------------------------------------
 
@@ -54,11 +56,15 @@ protected:
 
 	bool bCanControl;
 
+	UFUNCTION()
+	FORCEINLINE void ToggleCanControl() {bCanControl = !bCanControl;}
+
 	/** Projectile */
 	//------------------------------------------------------------------------------------------------
 	UPROPERTY(EditDefaultsOnly, Category= "Projectile")
 	TSubclassOf<AProjectile> ProjectileToSpawn;
 
+	UPROPERTY(VisibleAnywhere, Category= "Projectile")
 	TObjectPtr<AProjectile> SpawnedProjectile;
 
 	void SpawnProjectile();
@@ -70,7 +76,24 @@ protected:
 	float ProjectileSpawnLocationOffset;	
 	//------------------------------------------------------------------------------------------------
 
-	TObjectPtr<APlayerController> PlayerCont;	
+	TObjectPtr<APlayerController> PlayerCont;
+
+	FVector BoxExtend;
+
+	TObjectPtr<AUESpaceInvadersGameModeBase> GameModeBase;
+
+	/** Receive Damage Related */
+	//------------------------------------------------------------------------------------------------
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	void OnDead();
+	UFUNCTION()
+	void OnRespawn();
+	void DisablePlayer(bool bIsDisabled);
+
+	FVector InitialPosition;
+	//------------------------------------------------------------------------------------------------
+	
+	
 
 public:
 	// Called to bind functionality to input

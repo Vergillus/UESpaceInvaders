@@ -9,7 +9,8 @@
 
 // Sets default values
 AProjectile::AProjectile() :
-	bIsActive(true)
+	bIsActive(true),
+	LifeTime(5.0f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -23,6 +24,7 @@ AProjectile::AProjectile() :
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement Component"));
+	MovementComponent->ProjectileGravityScale = 0.0f;
 
 }
 
@@ -51,11 +53,11 @@ void AProjectile::SetDestroyOnHit(bool NewVal)
 
 	if(NewVal == true)
 	{
-		SetLifeSpan(5.0f);		
+		SetLifeSpan(LifeTime);		
 	}
 }
 
-void AProjectile::SetVelocity(const FVector& NewVelocity)
+void AProjectile::SetVelocity(const FVector& NewVelocity) const
 {
 	MovementComponent->Velocity = NewVelocity;	
 }

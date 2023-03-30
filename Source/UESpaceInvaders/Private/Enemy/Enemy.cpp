@@ -7,6 +7,7 @@
 #include "Enemy/EnemyDataAsset.h"
 #include "Enemy/EnemyHorde.h"
 #include "Kismet/GameplayStatics.h"
+#include "Projectile/Projectile.h"
 #include "UESpaceInvaders/UESpaceInvadersGameModeBase.h"
 
 // Sets default values
@@ -34,11 +35,19 @@ void AEnemy::InitializeEnemy(const int X, const int Y, const UEnemyDataAsset* En
 	AttackPercent = EnemyData->AttackChancePercent;
 }
 
-void AEnemy::Attack() const
+void AEnemy::Attack(const TSubclassOf<AProjectile>& ProjectileClass, const float ProjectileSpeed)
 {
 	if (AttackPercent <= FMath::RandRange(0.0f,1.0f))
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("Pos %i __ %i is Attacking"),GridPosition.X, GridPosition.Y);		
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParameters.Owner = this;
+		//UE_LOG(LogTemp, Warning, TEXT("Pos %i __ %i is Attacking"),GridPosition.X, GridPosition.Y);
+		if(AProjectile* SpawnedProjectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, GetActorLocation(), FRotator::ZeroRotator,SpawnParameters))
+		{
+			SpawnedProjectile->SetVelocity(FVector::BackwardVector * ProjectileSpeed);
+			SpawnedProjectile->SetDestroyOnHit(true);
+		}
 	}
 	
 }

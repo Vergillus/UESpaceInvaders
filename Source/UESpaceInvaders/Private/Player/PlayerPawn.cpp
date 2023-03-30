@@ -6,11 +6,12 @@
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/GameplayStatics.h"
 #include "Projectile/Projectile.h"
+#include "UESpaceInvaders/UESpaceInvadersGameModeBase.h"
 
 // Sets default values
 APlayerPawn::APlayerPawn() :
 	MovementSpeed(300.0f),
-	bCanControl(true),
+	bCanControl(false),
 	ProjectileSpeed(1500),
 	ProjectileSpawnLocationOffset(100)
 {
@@ -36,6 +37,19 @@ void APlayerPawn::BeginPlay()
 	}
 
 	PlayerCont = Cast<APlayerController>(GetController());
+
+	FVector Origin;
+	GetActorBounds(true,Origin,BoxExtend);
+	
+	GameModeBase = Cast<AUESpaceInvadersGameModeBase>(UGameplayStatics::GetGameMode(this));
+	if(GameModeBase)
+	{
+		// Bind GM event(s)
+		GameModeBase->OnEnemySpawnCompleted.AddDynamic(this, &APlayerPawn::ToggleCanControl);
+		GameModeBase->OnPlayerRespawned.AddDynamic(this, &APlayerPawn::OnRespawn);
+	}
+
+	InitialPosition = GetActorLocation();
 	
 }
 
@@ -74,11 +88,30 @@ void APlayerPawn::Move(const FInputActionValue& Value)
 	
 	const float InputVal = Value.Get<float>();
 
+	// Check if the player reached the edges of the screen
+	if(PlayerCont)
+	{
+		const FVector PlayerBoundLoc = GetActorLocation() + (BoxExtend * FMath::Sign(InputVal));
+		FVector2d ScreenLoc;
+		PlayerCont->ProjectWorldLocationToScreen(PlayerBoundLoc,ScreenLoc);
+
+		int ViewportSizeX, ViewportSizeY;
+		PlayerCont->GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+		// If so stop movement until the player changes its movement direction.
+		if (ScreenLoc.X >= ViewportSizeX || ScreenLoc.X <= 0) 
+		{
+			return;
+		}
+	}
+
 	const FVector HorizontalMovement = FVector::RightVector * InputVal * MovementSpeed * GetWorld()->GetDeltaSeconds();
 
 	AddActorWorldOffset(HorizontalMovement);
 }
 
+
+#pragma region Attack Related
 void APlayerPawn::Fire()
 {
 	if (!bCanControl) return;
@@ -98,7 +131,6 @@ void APlayerPawn::Fire()
 	}	
 }
 
-
 void APlayerPawn::SpawnProjectile()
 {
 	const auto World = GetWorld();
@@ -115,3 +147,34 @@ void APlayerPawn::SpawnProjectile()
 		}
 	}
 }
+#pragma endregion 
+
+
+#pragma region Receive Damage Related
+float APlayerPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	OnDead();
+	return DamageAmount;
+}
+
+void APlayerPawn::OnDead()
+{
+	DisablePlayer(true);
+	GameModeBase->PlayerDead();
+	SpawnedProjectile = nullptr;
+}
+
+void APlayerPawn::OnRespawn()
+{
+	SetActorLocation(InitialPosition);
+	DisablePlayer(false);
+}
+
+void APlayerPawn::DisablePlayer(bool bIsDisabled)
+{
+	bCanControl = !bIsDisabled;
+	Mesh->SetVisibility(!bIsDisabled);	
+	Mesh->SetCollisionEnabled(bIsDisabled ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryOnly);
+}
+#pragma endregion 

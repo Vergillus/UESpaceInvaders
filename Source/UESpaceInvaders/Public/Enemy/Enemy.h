@@ -9,6 +9,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class UEnemyDataAsset;
+class AProjectile;
 
 UCLASS()
 class UESPACEINVADERS_API AEnemy : public AActor
@@ -48,5 +49,5 @@ public:
 
 	void InitializeEnemy(const int X, const int Y, const UEnemyDataAsset* EnemyData);
 
-	void Attack() const;
+	void Attack(const TSubclassOf<AProjectile>& ProjectileClass, const float ProjectileSpeed);
 };

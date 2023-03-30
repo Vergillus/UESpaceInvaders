@@ -9,6 +9,8 @@
 class AEnemy;
 class UEnemyDataAsset;
 class APlayerController;
+class AProjectile;
+class UCurveFloat;
 
 UCLASS()
 class UESPACEINVADERS_API AEnemyHorde : public AActor
@@ -69,20 +71,19 @@ protected:
 
 	/** Returns EnemyData according to grid row index */
 	UEnemyDataAsset* GetEnemyData(const int Row) const;
-	//---------------------------------------------------------------
 
 	/** List to store spawned enemies */
 	TArray<AEnemy*> SpawnedEnemies;
-
-	/** List to check whether enemy has other enemies in front in order to attack */
-	UPROPERTY(VisibleAnywhere, Category= "Debug")
-	TArray<uint8> Grid;
+	//---------------------------------------------------------------	
 
 
 	/** Movement Related */
 	//---------------------------------------------------------------
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= Movement)
-	float MovementInterval;
+	TObjectPtr<UCurveFloat> MovementIntervalCurve;	
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category= Movement)
+	float CurrentMovementInterval;
 	float MovementCounter;
 
 	/** Delay the movement after Vertical movement occurs. */
@@ -100,13 +101,19 @@ protected:
 	void Move(float DeltaTime);
 	void CheckGameOver();
 
+	/** Changes the movement interval according the alive enemy count in the horde */
+	void ChangeMovementInterval();
+
 	UPROPERTY(VisibleAnywhere, Category= "Debug")
 	int ViewportSizeX;
 
 	UPROPERTY(VisibleAnywhere, Category= "Debug")
 	int ViewportSizeY;
 
-	bool bCanMove;	
+	bool bCanMove;
+
+	UFUNCTION()
+	FORCEINLINE void ToggleCanMove() { bCanMove = !bCanMove;};
 
 	TObjectPtr<APlayerController> PlayerController;
 
@@ -122,16 +129,32 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category= "Attack")
 	float MaxAttackRate;
+
+	UPROPERTY(EditAnywhere, Category= "Attack")
+	TSubclassOf<AProjectile> ProjectileToSpawn;
+
+	UPROPERTY(EditAnywhere, Category= "Attack")
+	float MinProjectileSpeed;
+
+	UPROPERTY(EditAnywhere, Category= "Attack")
+	float MaxProjectileSpeed;
+	
+	/** List to check whether enemy has other enemies in front in order to attack */
+	UPROPERTY(VisibleAnywhere, Category= "Debug")
+	TArray<uint8> AttackLookupList;
 	
 	void OrderAttack();
-	void StartAttackTimer();
+	void StartAttackTimer();	
 	//---------------------------------------------------------------
-	
-	int32 KilledEnemyCnt;
 
-	TObjectPtr<AEnemy> AssignNewTopEnemy(int32 GridPosX, int32 GridPosY, bool bIsTopLeft);
-	
-	FORCEINLINE bool CheckWin() const { return KilledEnemyCnt == SpawnedEnemies.Num(); }
+	UPROPERTY(VisibleAnywhere, Category= "Debug")
+	int32 AliveEnemyCnt;
+
+	/** Finds a new top left/right enemy*/
+	TObjectPtr<AEnemy> GetNewTopEnemy(int32 GridPosX, int32 GridPosY, bool bIsTopLeft);
+
+	/** If there is no alive enemy then the player wins */
+	FORCEINLINE bool CheckWin() const { return AliveEnemyCnt == 0; }
 
 public:	
 	// Called every frame
