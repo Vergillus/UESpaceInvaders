@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "Enemy/EnemyDataAsset.h"
 #include "Enemy/EnemyHorde.h"
+#include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Projectile/Projectile.h"
 #include "UESpaceInvaders/UESpaceInvadersGameModeBase.h"
@@ -30,7 +31,8 @@ void AEnemy::InitializeEnemy(const int X, const int Y, const UEnemyDataAsset* En
 {
 	SetGridPosition(X,Y);
 
-	Mesh->SetStaticMesh(EnemyData->Mesh);
+	//Mesh->SetStaticMesh(EnemyData->Mesh);
+	Mesh->SetMaterial(0, EnemyData->Material);
 	Score = EnemyData->ReceivedScore;
 	AttackPercent = EnemyData->AttackChancePercent;
 }
@@ -74,7 +76,8 @@ void AEnemy::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	//UE_LOG(LogTemp,Warning,TEXT("%s overlapas %s"), *GetName(), *OtherActor->GetName());
+	// Only applies damage to bunker piece
+	OtherActor->TakeDamage(1, FDamageEvent(), nullptr,nullptr);	
 }
 
 float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,

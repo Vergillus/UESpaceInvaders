@@ -174,7 +174,7 @@ void APlayerPawn::OnRespawn()
 void APlayerPawn::DisablePlayer(bool bIsDisabled)
 {
 	bCanControl = !bIsDisabled;
-	Mesh->SetVisibility(!bIsDisabled);	
+	Mesh->SetVisibility(!bIsDisabled, true);	
 	Mesh->SetCollisionEnabled(bIsDisabled ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryOnly);
 }
 #pragma endregion 

@@ -3,14 +3,53 @@
 
 #include "UESpaceInvadersGameModeBase.h"
 
+#include "SIGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Projectile/Projectile.h"
 #include "UFO/UFO.h"
+#include "UI/InGameUI.h"
 
+
+void AUESpaceInvadersGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	GameInstance = Cast<USIGameInstance>(UGameplayStatics::GetGameInstance(this));
+
+	
+	if(InGameUIToSpawn && GameInstance)
+	{
+		InGameUIInstance = CreateWidget<UInGameUI>(GetWorld(), InGameUIToSpawn);
+		if (InGameUIInstance)
+		{
+			InGameUIInstance->AddToViewport();
+			InGameUIInstance->ChangeScore(GameInstance->GetScore());
+
+			if(GameInstance->GetLives() != GameInstance->GetMaxLives())
+			{
+				InGameUIInstance->OnLevelChanged(GameInstance->GetLives());						
+			}
+		}
+	}
+
+	
+}
+
+void AUESpaceInvadersGameModeBase::IncreaseScore(const int Score)
+{
+	if(Score == 0 || !GameInstance) return;	
+	
+	GameInstance->IncreaseScore(Score);
+
+	InGameUIInstance->ChangeScore(GameInstance->GetScore());
+}
 
 void AUESpaceInvadersGameModeBase::PlayerDead()
 {
-	PlayerLives--;
+	if(!GameInstance) return;
+
+	GameInstance->DecreaseLives();
+	InGameUIInstance->OnPlayerDead(GameInstance->GetLives());
 
 	if (!IsPlayerHaveEnoughLives())
 	{
@@ -59,6 +98,11 @@ void AUESpaceInvadersGameModeBase::RespawnPlayer() const
 	}
 }
 
+bool AUESpaceInvadersGameModeBase::IsPlayerHaveEnoughLives() const
+{
+	return GameInstance->GetLives() > 0;
+}
+
 void AUESpaceInvadersGameModeBase::StartUfoSpawnTimer()
 {
 	if(!UFOToSpawn) return;
@@ -66,6 +110,7 @@ void AUESpaceInvadersGameModeBase::StartUfoSpawnTimer()
 	const float InRate = FMath::RandRange(UFOSpawnMinDelay, UFOSpawnMaxDelay);
 	GetWorldTimerManager().SetTimer(UFOSpawnTimerHandle, this, &AUESpaceInvadersGameModeBase::SpawnUFO,InRate);	
 }
+
 
 void AUESpaceInvadersGameModeBase::SpawnUFO()
 {

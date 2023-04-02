@@ -23,6 +23,9 @@ public:
 	TObjectPtr<UStaticMesh> Mesh;
 
 	UPROPERTY(EditAnywhere)
+	TObjectPtr<UMaterialInstance> Material;
+
+	UPROPERTY(EditAnywhere)
 	int32 ReceivedScore;
 
 	UPROPERTY(EditAnywhere)

@@ -33,7 +33,6 @@ void AProjectile::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 {
 	if(OtherActor && OtherActor != GetOwner())
 	{
-		UE_LOG(LogTemp,Warning,TEXT("Collide with %s"), *OtherActor->GetName());
 		OtherActor->TakeDamage(1, FDamageEvent(UDamageType::StaticClass()),nullptr,nullptr);
 
 		if(bShouldDestroyOnHit)

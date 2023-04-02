@@ -13,6 +13,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemySpawnCompleted);
 
 class AUFO;
 class APlayerController;
+class UInGameUI;
+class USIGameInstance;
 
 /**
  * 
@@ -21,11 +23,6 @@ UCLASS()
 class UESPACEINVADERS_API AUESpaceInvadersGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-
-	int PlayersScore;
-
-	int PlayerLives = 3;
-
 public:
 
 	/** GM Events */
@@ -35,7 +32,7 @@ public:
 	FOnEnemySpawnCompleted OnEnemySpawnCompleted;
 	//---------------------------------------------
 
-	FORCEINLINE void IncreaseScore(const int Score) {PlayersScore += Score; }
+	FORCEINLINE void IncreaseScore(const int Score);
 
 	void PlayerDead();
 
@@ -43,7 +40,8 @@ public:
 
 	void StartUfoSpawnTimer();
 	
-protected:	
+protected:
+	virtual void BeginPlay() override;
 	
 	UPROPERTY(EditAnywhere)
 	float PlayerRespawnDelay;
@@ -60,6 +58,8 @@ private:
 	FTimerHandle PlayerRespawnTimerHandle;
 	//---------------------------------------------
 
+	/** UFO Related */
+	//---------------------------------------------
 	UPROPERTY(EditDefaultsOnly, Category= "UFO")
 	TSubclassOf<AUFO> UFOToSpawn;	
 	UPROPERTY(EditDefaultsOnly, Category= "UFO")
@@ -71,12 +71,23 @@ private:
 	float UFOSpawnPosScreenYOffset;
 
 	void SpawnUFO();
+	//---------------------------------------------
 
 	/** Timer Handle Functions */
 	//---------------------------------------------
 	void RespawnPlayer() const;
 	//---------------------------------------------
 
-	FORCEINLINE bool IsPlayerHaveEnoughLives() const {return PlayerLives > 0;}
+	bool IsPlayerHaveEnoughLives() const;
+
+	/** In Game UI */
+	//---------------------------------------------
+	UPROPERTY(EditDefaultsOnly, Category= "UI", meta=(AllowPrivateAccess = "true"))
+	TSubclassOf<UInGameUI> InGameUIToSpawn;
+
+	TObjectPtr<UInGameUI> InGameUIInstance;
+	//---------------------------------------------
+
+	TObjectPtr<USIGameInstance> GameInstance;
 	
 };
