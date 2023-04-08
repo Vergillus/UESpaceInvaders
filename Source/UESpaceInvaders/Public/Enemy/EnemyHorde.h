@@ -11,6 +11,8 @@ class UEnemyDataAsset;
 class APlayerController;
 class AProjectile;
 class UCurveFloat;
+class USoundBase;
+class UParticleSystem;
 
 UCLASS()
 class UESPACEINVADERS_API AEnemyHorde : public AActor
@@ -89,12 +91,11 @@ protected:
 	/** Delay the movement after Vertical movement occurs. */
 	float VerticalMovementDelay;
 	float VerticalMovementCounter;
+	
+	UPROPERTY(VisibleAnywhere, Category= Movement)
+	int8 MovementInput;
 
-	/**TODO: Change this to enum*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category= Movement)
-	int MovementInput;
-
-	/** Game will be over once this Actor reaches the value below */
+	/** Game will be over once any child Actor(Enemy) reaches the value below */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= Movement)
 	float WorldXPosToGameOver;
 
@@ -138,6 +139,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category= "Attack")
 	float MaxProjectileSpeed;
+
+	UPROPERTY(EditAnywhere, Category= "Attack | VFX")
+	TObjectPtr<USoundBase> DeathSound;
+
+	UPROPERTY(EditAnywhere, Category= "Attack | VFX")
+	TObjectPtr<UParticleSystem> DeathParticle;
 	
 	/** List to check whether enemy has other enemies in front in order to attack */
 	UPROPERTY(VisibleAnywhere, Category= "Debug")
@@ -161,5 +168,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void EnemyDead(const int GridPosX, const int GridPosY);
+
+	FORCEINLINE TObjectPtr<USoundBase> GetDeathSound() const {return  DeathSound;}
+	FORCEINLINE TObjectPtr<UParticleSystem> GetDeathParticle() const {return  DeathParticle;}
 
 };

@@ -15,6 +15,7 @@ class AUFO;
 class APlayerController;
 class UInGameUI;
 class USIGameInstance;
+class USISaveGame;
 
 /**
  * 
@@ -32,20 +33,26 @@ public:
 	FOnEnemySpawnCompleted OnEnemySpawnCompleted;
 	//---------------------------------------------
 
-	FORCEINLINE void IncreaseScore(const int Score);
+	UFUNCTION()
+	FORCEINLINE void IncreaseScore(const int Score) const;
 
+	/** Win/Lose */
+	//---------------------------------------------
 	void PlayerDead();
+	void PlayerWin();
+	//---------------------------------------------
 
 	void EnemySpawnCompleted();
 
 	void StartUfoSpawnTimer();
 	
-protected:
+protected:	
 	virtual void BeginPlay() override;
 	
 	UPROPERTY(EditAnywhere)
 	float PlayerRespawnDelay;
 
+	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerCont;
 
 private:
@@ -70,7 +77,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category= "UFO")
 	float UFOSpawnPosScreenYOffset;
 
-	void SpawnUFO();
+	void SpawnUFO() const;
 	//---------------------------------------------
 
 	/** Timer Handle Functions */
@@ -88,6 +95,7 @@ private:
 	TObjectPtr<UInGameUI> InGameUIInstance;
 	//---------------------------------------------
 
+	UPROPERTY()
 	TObjectPtr<USIGameInstance> GameInstance;
 	
 };

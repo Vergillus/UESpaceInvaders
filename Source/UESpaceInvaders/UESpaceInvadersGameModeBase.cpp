@@ -15,7 +15,6 @@ void AUESpaceInvadersGameModeBase::BeginPlay()
 	Super::BeginPlay();
 
 	GameInstance = Cast<USIGameInstance>(UGameplayStatics::GetGameInstance(this));
-
 	
 	if(InGameUIToSpawn && GameInstance)
 	{
@@ -35,7 +34,7 @@ void AUESpaceInvadersGameModeBase::BeginPlay()
 	
 }
 
-void AUESpaceInvadersGameModeBase::IncreaseScore(const int Score)
+void AUESpaceInvadersGameModeBase::IncreaseScore(const int Score) const
 {
 	if(Score == 0 || !GameInstance) return;	
 	
@@ -44,6 +43,7 @@ void AUESpaceInvadersGameModeBase::IncreaseScore(const int Score)
 	InGameUIInstance->ChangeScore(GameInstance->GetScore());
 }
 
+#pragma region  Win/Lose
 void AUESpaceInvadersGameModeBase::PlayerDead()
 {
 	if(!GameInstance) return;
@@ -54,8 +54,13 @@ void AUESpaceInvadersGameModeBase::PlayerDead()
 	if (!IsPlayerHaveEnoughLives())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Player has no more lives GAME OVER"));
-
-		// TODO: Load GAme OVer Scene
+//		SaveGameObject->HighScore = FMath::Max(SaveGameObject->HighScore, GameInstance->GetScore()); 
+		//WriteSaveGame();
+		GameInstance->SetHighScore(FMath::Max(GameInstance->GetHighScore(), GameInstance->GetScore()));
+		GameInstance->WriteSaveGame();
+		
+		UGameplayStatics::OpenLevel(GetWorld(),FName("GameOverMap"));
+		return;
 	}
 
 	if(OnPlayerDead.IsBound())
@@ -65,6 +70,20 @@ void AUESpaceInvadersGameModeBase::PlayerDead()
 		GetWorldTimerManager().SetTimer(PlayerRespawnTimerHandle, this, &AUESpaceInvadersGameModeBase::RespawnPlayer, PlayerRespawnDelay);
 	}	
 }
+
+void AUESpaceInvadersGameModeBase::PlayerWin()
+{
+	// SaveGameObject->HighScore = FMath::Max(SaveGameObject->HighScore, GameInstance->GetScore()); 
+	// WriteSaveGame();
+
+	GameInstance->SetHighScore(FMath::Max(GameInstance->GetHighScore(), GameInstance->GetScore()));
+	GameInstance->WriteSaveGame();
+	GameInstance->IncreaseLevel();
+	
+	const FName CurrentLevelName{UGameplayStatics::GetCurrentLevelName(this)};
+	UGameplayStatics::OpenLevel(GetWorld(),CurrentLevelName);
+}
+#pragma endregion 
 
 void AUESpaceInvadersGameModeBase::EnemySpawnCompleted()
 {
@@ -103,6 +122,7 @@ bool AUESpaceInvadersGameModeBase::IsPlayerHaveEnoughLives() const
 	return GameInstance->GetLives() > 0;
 }
 
+#pragma region UFO Related
 void AUESpaceInvadersGameModeBase::StartUfoSpawnTimer()
 {
 	if(!UFOToSpawn) return;
@@ -111,8 +131,7 @@ void AUESpaceInvadersGameModeBase::StartUfoSpawnTimer()
 	GetWorldTimerManager().SetTimer(UFOSpawnTimerHandle, this, &AUESpaceInvadersGameModeBase::SpawnUFO,InRate);	
 }
 
-
-void AUESpaceInvadersGameModeBase::SpawnUFO()
+void AUESpaceInvadersGameModeBase::SpawnUFO() const
 {
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -131,4 +150,5 @@ void AUESpaceInvadersGameModeBase::SpawnUFO()
 		}
 	}	
 }
+#pragma endregion 
 

@@ -3,28 +3,31 @@
 
 #include "Enemy/EnemyHorde.h"
 
+#include "SIGameInstance.h"
 #include "Enemy/Enemy.h"
 #include "Enemy/EnemyDataAsset.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "UESpaceInvaders/UESpaceInvadersGameModeBase.h"
 
+
+#pragma region Engine Functions
 // Sets default values
 AEnemyHorde::AEnemyHorde() :
 	EnemyGridWidth(12),
 	EnemyGridHeight(5),
 	GridCellSize(100),
+	EnemySpawnDelay(0.05f),
 	MovementCounter(0.0f),
-	MovementInput(1),
 	VerticalMovementDelay(0.5f),
+	MovementInput(1),
 	WorldXPosToGameOver(-200),
 	bCanMove(false),
-	EnemySpawnDelay(0.05f),
 	MinAttackRate(1.0f),
 	MaxAttackRate(2.0f),
-	AliveEnemyCnt(0),
 	MinProjectileSpeed(300),
-	MaxProjectileSpeed(1000)
+	MaxProjectileSpeed(1000),
+	AliveEnemyCnt(0)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -35,11 +38,21 @@ void AEnemyHorde::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Change start position based on the number of levels passed.
+	if(const auto GI = Cast<USIGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		const int XOffsetMulti = FMath::Min(GI->GetCurrentLevel(), GI->GetMaxLevel());
+		const FVector NewLocation = GetActorLocation() - FVector::ForwardVector * GridCellSize * XOffsetMulti;
+		SetActorLocation(NewLocation);
+	}
+
 	// Randomly assign MovementInput
 	MovementInput = FMath::RandRange(0, 100) > 50 ? 1 : -1;
-
+	
 	GridCellHalfSize = GridCellSize * 0.5f;
 
+	// Initiate spawn process
+	//--------------------------------------------
 	if (EnemyData.IsEmpty()) return;
 
 	AttackLookupList.SetNum(EnemyGridWidth * EnemyGridHeight);
@@ -49,6 +62,7 @@ void AEnemyHorde::BeginPlay()
 	// Start enemy spawning process
 	GetWorldTimerManager().SetTimer(SpawnEnemiesTimerHandle, this, &AEnemyHorde::SpawnEnemiesWithDelay, EnemySpawnDelay,
 	                                true);
+	//--------------------------------------------
 
 	// Bind GM Delegates
 	if (const auto GM = Cast<AUESpaceInvadersGameModeBase>(UGameplayStatics::GetGameMode(this)))
@@ -68,6 +82,7 @@ void AEnemyHorde::Tick(float DeltaTime)
 		Move(DeltaTime);
 	}
 }
+#pragma endregion 
 
 // Moves the enemy left/right/down
 void AEnemyHorde::Move(float DeltaTime)
@@ -92,9 +107,7 @@ void AEnemyHorde::Move(float DeltaTime)
 			                           ? TopRightEnemy->GetActorLocation()
 			                           : TopLeftEnemy->GetActorLocation();
 		BoundaryLocation += LocationOffset;
-		BoundaryLocation.Y += GridCellHalfSize * MovementInput;
-
-		DrawDebugSphere(GetWorld(), BoundaryLocation, 100, 12, FColor::Red, false, 1.0f);
+		BoundaryLocation.Y += GridCellHalfSize * MovementInput;		
 
 		// Get the screen position of BoundaryLocation
 		FVector2D ScreenPosition;
@@ -127,15 +140,18 @@ void AEnemyHorde::EnemyDead(const int GridPosX, const int GridPosY)
 	AliveEnemyCnt--;
 	const int EnemyIndex = GetIndexFrom2D(GridPosX, GridPosY);
 
+	// Is Player Won?
 	if (CheckWin())
 	{
 		//Notify GM that the player is WON
-
-		bCanMove = false;
-		SpawnedEnemies[EnemyIndex]->Destroy();
-		SpawnedEnemies[EnemyIndex] = nullptr;
-
-		return;
+		if (const auto GM = Cast<AUESpaceInvadersGameModeBase>(UGameplayStatics::GetGameMode(this)))
+		{
+			bCanMove = false;
+			SpawnedEnemies[EnemyIndex]->Destroy();
+			SpawnedEnemies[EnemyIndex] = nullptr;
+			GM->PlayerWin();
+			return;			
+		}				
 	}
 
 	AttackLookupList[EnemyIndex] = 0;
@@ -336,7 +352,7 @@ TObjectPtr<AEnemy> AEnemyHorde::GetNewTopEnemy(const int32 GridPosX, const int32
 	}
 	else // Look for new TopRight enemy
 	{
-		for (int Y = GridPosY - 1; Y > 0; --Y)
+		for (int Y = GridPosY - 1; Y >= 0; --Y)
 		{
 			if (SpawnedEnemies[GetIndexFrom2D(GridPosX, Y)])
 			{

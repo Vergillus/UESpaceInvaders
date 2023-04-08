@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class APlayerController;
+class USoundBase;
 
 UCLASS()
 class UESPACEINVADERS_API AUFO : public AActor
@@ -22,6 +23,12 @@ class UESPACEINVADERS_API AUFO : public AActor
 
 	UPROPERTY(EditDefaultsOnly, meta=( AllowPrivateAccess = "true"), Category= "Components")
 	TObjectPtr<UAudioComponent> UFOAudioComp;
+
+	UPROPERTY(EditDefaultsOnly, meta=( AllowPrivateAccess = "true"), Category= "VFX")
+	TObjectPtr<USoundBase> DeathSound;
+
+	UPROPERTY(EditDefaultsOnly, meta=( AllowPrivateAccess = "true"), Category= "VFX")
+	TObjectPtr<UParticleSystem> DeathParticle;	
 
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
 	int Score;

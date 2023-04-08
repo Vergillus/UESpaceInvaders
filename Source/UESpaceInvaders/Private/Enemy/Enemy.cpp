@@ -54,21 +54,30 @@ void AEnemy::Attack(const TSubclassOf<AProjectile>& ProjectileClass, const float
 	
 }
 
-void AEnemy::OnDead()
+void AEnemy::OnDead() const
 {
 	if(const auto EnemyHorde = Cast<AEnemyHorde>(GetOwner()))
 	{
-		// Notify EnemyHorde that this Enemy is dead
-		EnemyHorde->EnemyDead(GridPosition.X, GridPosition.Y);
+		// Play Death Sound
+		if(EnemyHorde->GetDeathSound())
+		{
+			UGameplayStatics::PlaySound2D(this,EnemyHorde->GetDeathSound());			
+		}
 
-		// TODO:Play Sound
+		// Play Death Particle
+		if (EnemyHorde->GetDeathParticle())
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(this, EnemyHorde->GetDeathParticle(),GetActorLocation());			
+		}
 
-		// TODO:Play Particle
-		
+		// Increase Players score
 		if(const auto GameMode = Cast<AUESpaceInvadersGameModeBase>(UGameplayStatics::GetGameMode(this)))
 		{
 			GameMode->IncreaseScore(Score);
 		}
+
+		// Notify EnemyHorde that this Enemy is dead
+		EnemyHorde->EnemyDead(GridPosition.X, GridPosition.Y);
 	}
 }
 

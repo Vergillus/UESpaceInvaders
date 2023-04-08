@@ -7,6 +7,7 @@
 #include "Engine/DamageEvents.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
+#pragma region Engine Functions
 // Sets default values
 AProjectile::AProjectile() :
 	bIsActive(true),
@@ -33,6 +34,7 @@ void AProjectile::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 {
 	if(OtherActor && OtherActor != GetOwner())
 	{
+		// Apply damage to OtherActor
 		OtherActor->TakeDamage(1, FDamageEvent(UDamageType::StaticClass()),nullptr,nullptr);
 
 		if(bShouldDestroyOnHit)
@@ -45,6 +47,7 @@ void AProjectile::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 		}
 	}
 }
+#pragma endregion 
 
 void AProjectile::SetDestroyOnHit(bool NewVal)
 {

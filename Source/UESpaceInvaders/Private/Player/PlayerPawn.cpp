@@ -8,6 +8,8 @@
 #include "Projectile/Projectile.h"
 #include "UESpaceInvaders/UESpaceInvadersGameModeBase.h"
 
+
+#pragma region Engine Functions
 // Sets default values
 APlayerPawn::APlayerPawn() :
 	MovementSpeed(300.0f),
@@ -57,11 +59,13 @@ void APlayerPawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	// Check for projectiles screen position if it is active
 	if (PlayerCont && SpawnedProjectile && SpawnedProjectile->GetIsActive())
 	{
 		FVector2d ScreenPos;
 		PlayerCont->ProjectWorldLocationToScreen(SpawnedProjectile->GetActorLocation(),ScreenPos);
 
+		// Has Projectile reached top of the screen?
 		if(ScreenPos.Y < 0)
 		{
 			SpawnedProjectile->DisableProjectile(true);				
@@ -81,6 +85,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	}
 
 }
+#pragma endregion
 
 void APlayerPawn::Move(const FInputActionValue& Value)
 {
@@ -128,7 +133,13 @@ void APlayerPawn::Fire()
 	{
 		SpawnProjectile();
 		SpawnedProjectile->SetVelocity(GetActorForwardVector() * ProjectileSpeed);	
-	}	
+	}
+
+	// Play Fire Sound
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
 }
 
 void APlayerPawn::SpawnProjectile()
@@ -160,6 +171,16 @@ float APlayerPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 
 void APlayerPawn::OnDead()
 {
+	if(DeathSound)
+	{
+		UGameplayStatics::PlaySound2D(this, DeathSound);		
+	}
+	if (DeathParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, DeathParticle,GetActorLocation());
+	}
+
+	
 	DisablePlayer(true);
 	GameModeBase->PlayerDead();
 	SpawnedProjectile = nullptr;

@@ -35,7 +35,7 @@ protected:
 
 	float AttackPercent;
 
-	void OnDead();
+	void OnDead() const;
 
 	UFUNCTION()
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;

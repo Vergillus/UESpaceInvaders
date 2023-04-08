@@ -41,17 +41,19 @@ void AUFO::Tick(float DeltaTime)
 
 	if (PlayerController)
 	{
+		// Check if the UFO has reached the edges of the screen...
 		const FVector ScreenEdgeCheckPos = GetActorLocation() - MovementDirection * CollisionSphere->
 			GetScaledSphereRadius();
 		FVector2D ScreenLoc;
 		PlayerController->ProjectWorldLocationToScreen(ScreenEdgeCheckPos, ScreenLoc);
 
-		if (MovementDirection == FVector::RightVector && ScreenLoc.X > ViewportSizeX)
+		// If so declare UFO as dead without giving points to the player
+		if (MovementDirection == FVector::RightVector && ScreenLoc.X > ViewportSizeX) // Check for right edge of the screen
 		{
 			OnDead();
 			return;
 		}
-		if (MovementDirection == FVector::LeftVector && ScreenLoc.X < 0)
+		if (MovementDirection == FVector::LeftVector && ScreenLoc.X < 0) // Check for left edge of the screen
 		{
 			OnDead();
 			return;
@@ -83,15 +85,25 @@ float AUFO::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, ACon
 
 void AUFO::OnDead(const bool bReceivedDamage)
 {
+	// Notify GameMode that UFO is dead.
 	if (const auto GM = Cast<AUESpaceInvadersGameModeBase>(UGameplayStatics::GetGameMode(this)))
 	{
 		if (bReceivedDamage)
 		{
 			GM->IncreaseScore(Score);
+
+			if(DeathSound)
+			{
+				UGameplayStatics::PlaySound2D(this, DeathSound);		
+			}
+			if (DeathParticle)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(this, DeathParticle,GetActorLocation());
+			}
 		}
 
 		GM->StartUfoSpawnTimer();
-	}
+	}	
 
 	Destroy();
 }

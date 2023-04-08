@@ -51,6 +51,8 @@ private:
 	void Fire();
 	//---------------------------------------
 
+	/** Movement Related */
+	//---------------------------------------
 	UPROPERTY(EditAnywhere, Category= "Movement")
 	float MovementSpeed;
 
@@ -58,6 +60,7 @@ private:
 
 	UFUNCTION()
 	FORCEINLINE void ToggleCanControl() {bCanControl = !bCanControl;}
+	//---------------------------------------
 
 	/** Projectile */
 	//------------------------------------------------------------------------------------------------
@@ -76,10 +79,15 @@ private:
 	float ProjectileSpawnLocationOffset;	
 	//------------------------------------------------------------------------------------------------
 
+	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerCont;
 
+	/** Bounding box of the player.
+	 * Used to check whether player has reached the edges of the screen 
+	 */
 	FVector BoxExtend;
 
+	UPROPERTY()
 	TObjectPtr<AUESpaceInvadersGameModeBase> GameModeBase;
 
 	/** Receive Damage Related */
@@ -87,13 +95,22 @@ private:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	void OnDead();
 	UFUNCTION()
+
+	/** Called via GameMode when respawn timer finished. */
 	void OnRespawn();
 	void DisablePlayer(bool bIsDisabled);
+
+	UPROPERTY(EditAnywhere, Category= "VFX")
+	TObjectPtr<USoundBase> DeathSound;
+
+	UPROPERTY(EditAnywhere, Category= "VFX")
+	TObjectPtr<UParticleSystem> DeathParticle;
 
 	FVector InitialPosition;
 	//------------------------------------------------------------------------------------------------
 	
-	
+	UPROPERTY(EditAnywhere, Category= "VFX")
+	TObjectPtr<USoundBase> FireSound;
 
 public:
 	// Called to bind functionality to input
