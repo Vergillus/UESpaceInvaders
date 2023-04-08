@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SIGameInstance.h"
 #include "GameFramework/Actor.h"
 #include "EnemyHorde.generated.h"
 
@@ -13,6 +14,7 @@ class AProjectile;
 class UCurveFloat;
 class USoundBase;
 class UParticleSystem;
+class USIGameInstance;
 
 UCLASS()
 class UESPACEINVADERS_API AEnemyHorde : public AActor
@@ -162,6 +164,11 @@ protected:
 
 	/** If there is no alive enemy then the player wins */
 	FORCEINLINE bool CheckWin() const { return AliveEnemyCnt == 0; }
+
+	/** Sets the initial position of this Actor based on the levels that passed.
+	 * Called via BeginPlay() 
+	 */
+	void SetInitialPosition(const USIGameInstance* GameInstance);
 
 public:	
 	// Called every frame

@@ -34,7 +34,7 @@ public:
 	//---------------------------------------------
 
 	UFUNCTION()
-	FORCEINLINE void IncreaseScore(const int Score) const;
+	void IncreaseScore(const int Score) const;
 
 	/** Win/Lose */
 	//---------------------------------------------

@@ -41,9 +41,7 @@ void AEnemyHorde::BeginPlay()
 	// Change start position based on the number of levels passed.
 	if(const auto GI = Cast<USIGameInstance>(UGameplayStatics::GetGameInstance(this)))
 	{
-		const int XOffsetMulti = FMath::Min(GI->GetCurrentLevel(), GI->GetMaxLevel());
-		const FVector NewLocation = GetActorLocation() - FVector::ForwardVector * GridCellSize * XOffsetMulti;
-		SetActorLocation(NewLocation);
+		SetInitialPosition(GI);
 	}
 
 	// Randomly assign MovementInput
@@ -318,6 +316,14 @@ void AEnemyHorde::StartAttackTimer()
 #pragma endregion
 
 #pragma region Helper Functions
+
+void AEnemyHorde::SetInitialPosition(const USIGameInstance* GameInstance)
+{
+	const int XOffsetMulti = FMath::Min(GameInstance->GetCurrentLevel(), GameInstance->GetMaxLevel());
+	const FVector NewLocation = GetActorLocation() - FVector::ForwardVector * GridCellSize * XOffsetMulti;
+	SetActorLocation(NewLocation);
+}
+
 int32 AEnemyHorde::GetIndexFrom2D(const int X, const int Y) const
 {
 	return X * EnemyGridWidth + Y;

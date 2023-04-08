@@ -32,10 +32,16 @@ public:
 	FORCEINLINE void IncreaseScore(const int Score) { PlayerScore += Score;}
 
 	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void ResetPlayersScore() {PlayerScore = 0;}
+
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE int GetScore() const {return PlayerScore;}
 
 	FORCEINLINE void DecreaseLives() { PlayerLives--;}
 	FORCEINLINE int GetLives() const { return PlayerLives; }
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void ResetLives() { PlayerLives = MaxPlayerLives;}
 
 	FORCEINLINE int GetMaxLives() const { return MaxPlayerLives; }
 
